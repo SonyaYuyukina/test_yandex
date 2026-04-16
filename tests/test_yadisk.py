@@ -1,3 +1,5 @@
+from difflib import restore
+
 import pytest
 
 TEST_FOLDER_NAME = "pytest_test_folder_1234"
@@ -74,9 +76,12 @@ class TestYandexDiskAPI():
         file_names = [item["name"] for item in items if item["type"] == "file"]
         assert TEST_FILE_NAME in file_names, f"Файл {TEST_FILE_NAME} не найден в корзине. Найдены файлы: {file_names}"
 
-        #TODO: вытащить название файла и удалить по нему
-        #api.restore_file_from_trash_request(TEST_FILE_NAME)
-        #check_if_file_exists(api, TEST_FILE_NAME)
+        for item in items:
+            if item["type"] == "file" and item["name"] == TEST_FILE_NAME:
+                restore_path = item["path"].replace("trash:/", "")
+                break
+        api.restore_file_from_trash_request(restore_path)
+        check_if_file_exists(api, TEST_FILE_NAME)
 
 
 
