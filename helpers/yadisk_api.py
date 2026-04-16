@@ -1,8 +1,8 @@
+from http.client import responses
 from tokenize import endpats
 
-from api_test.base_api import BaseApi
+from helpers.base_api import BaseApi
 import requests
-import time
 
 class YaDiskAPI(BaseApi):
     def create_folder_request(self, folder_path):
@@ -32,14 +32,7 @@ class YaDiskAPI(BaseApi):
         response = self.delete_request(endpoint, params=params)
         if response.status_code == 202:
             operation_url = response.json().get("href")
-            if operation_url:
-                for i in range(30):
-                    time.sleep(1)
-                    operation_response = self.get_request(operation_url.replace(self.base_url, ""))
-                    if operation_response.status_code == 200:
-                        status = operation_response.json().get("status")
-                        if status != "in-progress":
-                            return status == 'success'
+            return self.wait_for_operation(operation_url)
         return response.status_code == 204
 
     def get_trash_content_request(self, folder_path):
@@ -50,16 +43,18 @@ class YaDiskAPI(BaseApi):
 
     def restore_file_from_trash_request(self, file_name):
         endpoint = "/trash/resources/restore"
-        params = {"path": {file_name}}
+        params = {"path": file_name}
         response = self.put_request(endpoint, params=params)
         if response.status_code == 202:
             operation_url = response.json().get("href")
-            if operation_url:
-                for i in range(30):
-                    time.sleep(1)
-                    operation_response = self.get_request(operation_url.replace(self.base_url, ""))
-                    if operation_response.status_code == 200:
-                        status = operation_response.json().get("status")
-                        if status != "in-progress":
-                            return status == 'success'
+            return self.wait_for_operation(operation_url)
+        return response.status_code == 201
+
+    def move_file_request(self, folder_path, file_name):
+        endpoint = "/resources/move"
+        params = {"from": file_name, "path": folder_path}
+        response = self.post_request(endpoint, params=params)
+        if response.status_code == 202:
+            operation_url = response.json().get("href")
+            return self.wait_for_operation(operation_url)
         return response.status_code == 201
